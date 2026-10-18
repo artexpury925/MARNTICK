@@ -23,15 +23,24 @@ import yt_dlp
 # ==================== APP CONFIG ====================
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+
+# On Render the filesystem is ephemeral — use /tmp which is writable
+if os.environ.get('RENDER'):
+    db_path = '/tmp/marntick.db'
+    temp_dir = '/tmp/marntick_downloads'
+else:
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    os.makedirs(os.path.join(base_dir, 'instance'), exist_ok=True)
+    db_path = os.path.join(base_dir, 'instance', 'app.db')
+    temp_dir = os.path.join(base_dir, 'temp_downloads')
+
+os.makedirs(temp_dir, exist_ok=True)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'DATABASE_URL', 'sqlite:///instance/app.db'
+    'DATABASE_URL', f'sqlite:///{db_path}'
 ).replace('postgres://', 'postgresql://', 1)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
-
-# Ensure instance folder exists
-os.makedirs(os.path.join(app.root_path, 'instance'), exist_ok=True)
-os.makedirs(os.path.join(app.root_path, 'temp_downloads'), exist_ok=True)
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -80,7 +89,6 @@ def generate_code(length=8):
 
 def clean_old_temp_files():
     """Remove temp files older than 1 hour"""
-    temp_dir = os.path.join(app.root_path, 'temp_downloads')
     now = time.time()
     for f in os.listdir(temp_dir):
         path = os.path.join(temp_dir, f)
@@ -109,7 +117,6 @@ def get_video_info(url):
             formats = []
             seen = set()
 
-            # Prefer progressive + adaptive formats
             for f in info.get('formats', []):
                 height = f.get('height')
                 ext = f.get('ext', '')
@@ -119,13 +126,11 @@ def get_video_info(url):
                 acodec = f.get('acodec', 'none')
                 format_note = f.get('format_note') or ''
 
-                # Skip pure audio or storyboards
                 if vcodec == 'none' or 'storyboard' in str(format_note).lower():
                     continue
                 if not height:
                     continue
 
-                # Quality label
                 if height >= 2160:
                     quality = '4K'
                 elif height >= 1440:
@@ -159,10 +164,8 @@ def get_video_info(url):
                     'note': format_note,
                 })
 
-            # Sort by height descending
             formats.sort(key=lambda x: x['height'], reverse=True)
 
-            # Limit to best unique qualities
             unique = []
             seen_q = set()
             for f in formats:
@@ -193,7 +196,6 @@ def get_video_info(url):
 
 def download_video(url, format_id, out_path):
     """Download selected format. Prefer mp4 and merge audio when needed."""
-    # If a specific format_id is given use it; otherwise fall back to best
     fmt = format_id if format_id else 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/bestvideo+bestaudio/best'
     ydl_opts = {
         'format': fmt,
@@ -309,7 +311,6 @@ def forgot_password():
             if not user:
                 flash('No account found with that email/phone.', 'danger')
                 return render_template('forgot_password.html')
-            # Instruct user to contact developer
             flash(
                 'To reset your password, contact the developer on WhatsApp: '
                 '0140204950 and request a verification code. '
@@ -357,14 +358,12 @@ def dashboard():
         return redirect(url_for('banned'))
 
     video_info = None
-    error = None
 
     if request.method == 'POST':
         url = request.form.get('url', '').strip()
         if not url:
             flash('Please enter a valid URL.', 'warning')
         else:
-            # Basic URL validation for supported platforms
             supported = any(x in url.lower() for x in [
                 'youtube.com', 'youtu.be', 'facebook.com', 'fb.watch',
                 'tiktok.com', 'instagram.com', 'twitter.com', 'x.com'
@@ -400,8 +399,6 @@ def download():
 
     clean_old_temp_files()
 
-    # Create unique temp filename
-    temp_dir = os.path.join(app.root_path, 'temp_downloads')
     filename = f"{secrets.token_hex(8)}.%(ext)s"
     outtmpl = os.path.join(temp_dir, filename)
 
@@ -410,7 +407,6 @@ def download():
         flash(f'Download failed: {err}', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Find the actual downloaded file
     base = outtmpl.replace('%(ext)s', '')
     downloaded = None
     for f in os.listdir(temp_dir):
@@ -422,7 +418,6 @@ def download():
         flash('Downloaded file not found.', 'danger')
         return redirect(url_for('dashboard'))
 
-    # Send file and schedule deletion
     def remove_later(path):
         time.sleep(30)
         try:

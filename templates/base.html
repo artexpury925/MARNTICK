@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}MARNTICK{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        dark: '#0f172a',
+                        darker: '#020617',
+                        accent: '#22d3ee',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+            min-height: 100vh;
+        }
+        .glass {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+        .glow {
+            box-shadow: 0 0 20px rgba(99, 102, 241, 0.3);
+        }
+        .btn-glow:hover {
+            box-shadow: 0 0 25px rgba(34, 211, 238, 0.5);
+        }
+        .input-focus:focus {
+            border-color: #22d3ee;
+            box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.2);
+        }
+    </style>
+</head>
+<body class="text-gray-100 font-sans">
+    <nav class="glass sticky top-0 z-50 border-b border-indigo-500/20">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+            <a href="{{ url_for('index') }}" class="flex items-center gap-2 text-xl font-bold">
+                <i class="fas fa-cloud-download-alt text-cyan-400"></i>
+                <span class="bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">MARNTICK</span>
+            </a>
+            <div class="flex items-center gap-4">
+                {% if current_user.is_authenticated %}
+                    <span class="text-sm text-gray-400 hidden sm:inline">
+                        <i class="fas fa-user-circle mr-1"></i>{{ current_user.username }}
+                    </span>
+                    <a href="{{ url_for('logout') }}" class="text-sm text-red-400 hover:text-red-300">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="text-sm hover:text-cyan-400">Login</a>
+                    <a href="{{ url_for('register') }}" class="text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded-lg">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 py-8">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="mb-6 space-y-2">
+                    {% for category, message in messages %}
+                        <div class="px-4 py-3 rounded-lg text-sm
+                            {% if category == 'success' %}bg-emerald-500/20 border border-emerald-500/40 text-emerald-300
+                            {% elif category == 'danger' %}bg-red-500/20 border border-red-500/40 text-red-300
+                            {% elif category == 'warning' %}bg-amber-500/20 border border-amber-500/40 text-amber-300
+                            {% else %}bg-blue-500/20 border border-blue-500/40 text-blue-300{% endif %}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="text-center text-gray-500 text-sm py-6">
+        <p>MARNTICK &copy; 2026 · Download responsibly</p>
+    </footer>
+</body>
+</html>

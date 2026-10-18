@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel · MARNTICK{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-red-300"><i class="fas fa-user-shield mr-2"></i>Admin Panel</h1>
+            <p class="text-gray-400 text-sm">Manage users & verification codes</p>
+        </div>
+        <a href="{{ url_for('admin_logout') }}" class="text-sm text-red-400 hover:text-red-300">
+            <i class="fas fa-sign-out-alt mr-1"></i>Admin Logout
+        </a>
+    </div>
+
+    <div class="glass rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-800/80 text-gray-300">
+                    <tr>
+                        <th class="px-4 py-3 text-left">ID</th>
+                        <th class="px-4 py-3 text-left">Username</th>
+                        <th class="px-4 py-3 text-left">Email / Phone</th>
+                        <th class="px-4 py-3 text-left">Status</th>
+                        <th class="px-4 py-3 text-left">Joined</th>
+                        <th class="px-4 py-3 text-left">Code</th>
+                        <th class="px-4 py-3 text-left">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-700/50">
+                    {% for user in users %}
+                    <tr class="hover:bg-slate-800/40">
+                        <td class="px-4 py-3">{{ user.id }}</td>
+                        <td class="px-4 py-3 font-medium">{{ user.username }}</td>
+                        <td class="px-4 py-3 text-gray-400">{{ user.email_or_phone }}</td>
+                        <td class="px-4 py-3">
+                            {% if user.is_banned %}
+                            <span class="bg-red-500/20 text-red-300 text-xs px-2 py-1 rounded-full">Banned</span>
+                            {% else %}
+                            <span class="bg-emerald-500/20 text-emerald-300 text-xs px-2 py-1 rounded-full">Active</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-gray-400 text-xs">
+                            {{ user.created_at.strftime('%Y-%m-%d') if user.created_at else '-' }}
+                        </td>
+                        <td class="px-4 py-3">
+                            {% if user.verification_code %}
+                            <code class="bg-slate-700 px-2 py-1 rounded text-cyan-300 text-xs">{{ user.verification_code }}</code>
+                            {% else %}
+                            <span class="text-gray-500">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-2">
+                                {% if user.is_banned %}
+                                <form method="POST" action="{{ url_for('unban_user', user_id=user.id) }}">
+                                    <button type="submit" class="text-xs bg-emerald-600 hover:bg-emerald-500 px-2 py-1 rounded">Unban</button>
+                                </form>
+                                {% else %}
+                                <form method="POST" action="{{ url_for('ban_user', user_id=user.id) }}">
+                                    <button type="submit" class="text-xs bg-red-600 hover:bg-red-500 px-2 py-1 rounded"
+                                            onclick="return confirm('Ban this user?')">Ban</button>
+                                </form>
+                                {% endif %}
+                                <form method="POST" action="{{ url_for('generate_verification_code', user_id=user.id) }}">
+                                    <button type="submit" class="text-xs bg-indigo-600 hover:bg-indigo-500 px-2 py-1 rounded">
+                                        Gen Code
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">No users yet</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-sm text-gray-500">
+        <p>Total users: {{ users|length }}</p>
+        <p class="mt-1">Tip: Generate a code → share it via WhatsApp 0140204950 → user enters it on Forgot Password page.</p>
+    </div>
+</div>
+{% endblock %}

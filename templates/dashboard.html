@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · MARNTICK{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <!-- Hero / Input -->
+    <div class="glass rounded-2xl p-6 md:p-8 glow">
+        <div class="text-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold bg-gradient-to-r from-cyan-400 to-indigo-400 bg-clip-text text-transparent">
+                Download Any Video
+            </h1>
+            <p class="text-gray-400 mt-2 text-sm">YouTube · Facebook · TikTok · Instagram · Twitter/X</p>
+        </div>
+
+        <form method="POST" class="space-y-4">
+            <div class="relative">
+                <input type="url" name="url" required
+                       class="w-full bg-slate-900/70 border border-slate-700 rounded-xl px-5 py-4 pr-12 text-lg input-focus outline-none transition"
+                       placeholder="Paste video link here..."
+                       value="{{ request.form.get('url', '') }}">
+                <i class="fas fa-link absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+            </div>
+            <button type="submit"
+                    class="w-full bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-bold py-4 rounded-xl transition btn-glow text-lg">
+                <i class="fas fa-search mr-2"></i>Analyze Video
+            </button>
+        </form>
+    </div>
+
+    {% if video_info %}
+    <!-- Video Info Card -->
+    <div class="glass rounded-2xl overflow-hidden glow">
+        <div class="md:flex">
+            {% if video_info.thumbnail %}
+            <div class="md:w-2/5">
+                <img src="{{ video_info.thumbnail }}" alt="Thumbnail"
+                     class="w-full h-48 md:h-full object-cover">
+            </div>
+            {% endif %}
+            <div class="p-6 md:w-3/5">
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="text-xs bg-indigo-500/30 text-indigo-300 px-2 py-1 rounded-full uppercase">
+                        {{ video_info.platform }}
+                    </span>
+                    {% if video_info.duration %}
+                    <span class="text-xs text-gray-400">
+                        <i class="far fa-clock mr-1"></i>{{ (video_info.duration // 60) }}:{{ '%02d' % (video_info.duration % 60) }}
+                    </span>
+                    {% endif %}
+                </div>
+                <h2 class="text-xl font-semibold mb-1 line-clamp-2">{{ video_info.title }}</h2>
+                {% if video_info.uploader %}
+                <p class="text-sm text-gray-400 mb-4">{{ video_info.uploader }}</p>
+                {% endif %}
+
+                <h3 class="text-sm font-medium text-gray-300 mb-3">Available Qualities</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {% for f in video_info.formats %}
+                    <form method="POST" action="{{ url_for('download') }}">
+                        <input type="hidden" name="url" value="{{ video_info.url }}">
+                        <input type="hidden" name="format_id" value="{{ f.format_id }}">
+                        <button type="submit"
+                                class="w-full flex items-center justify-between bg-slate-800/80 hover:bg-indigo-600/40 border border-slate-700 hover:border-indigo-500 rounded-xl px-4 py-3 transition group">
+                            <div class="text-left">
+                                <span class="font-semibold text-cyan-300 group-hover:text-white">{{ f.quality }}</span>
+                                <span class="text-xs text-gray-400 ml-2">{{ f.ext.upper() }}</span>
+                                {% if f.filesize %}
+                                <div class="text-xs text-gray-500">{{ f.filesize }}</div>
+                                {% endif %}
+                            </div>
+                            <i class="fas fa-download text-gray-400 group-hover:text-cyan-300"></i>
+                        </button>
+                    </form>
+                    {% else %}
+                    <p class="text-gray-400 col-span-2">No downloadable formats found. Try another link.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Supported Platforms -->
+    <div class="glass rounded-2xl p-6">
+        <h3 class="text-center text-sm text-gray-400 mb-4">Supported Platforms</h3>
+        <div class="flex flex-wrap justify-center gap-4 text-2xl">
+            <span class="text-red-500" title="YouTube"><i class="fab fa-youtube"></i></span>
+            <span class="text-blue-500" title="Facebook"><i class="fab fa-facebook"></i></span>
+            <span class="text-pink-500" title="TikTok"><i class="fab fa-tiktok"></i></span>
+            <span class="text-pink-400" title="Instagram"><i class="fab fa-instagram"></i></span>
+            <span class="text-sky-400" title="Twitter / X"><i class="fab fa-x-twitter"></i></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
